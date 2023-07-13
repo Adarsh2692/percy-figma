@@ -1,0 +1,31 @@
+{
+  "name": "percy-figma",
+  "version": "1.0.0",
+  "description": "Helps you upload figma images to Percy and get visual comparisons",
+  "main": "index.js",
+  "bin": {
+    "mycli": "./index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "cli",
+    "figma",
+    "percy",
+    "percy-figma"
+  ],
+  "author": "Adarsh",
+  "license": "ISC",
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Adarsh2692/percy-figma.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Adarsh2692/percy-figma/issues"
+  },
+  "homepage": "https://github.com/Adarsh2692/percy-figma"
+}
