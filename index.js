@@ -6,10 +6,10 @@ const yaml = require("js-yaml");
 const { exec } = require("child_process");
 
 /** Fetching the path to config file, default config is "percyFigma.yml" **/
-const configFileArg = process.argv.find((arg) => arg.startsWith("--config="));
-const configFileName = configFileArg ? configFileArg.split("=")[1] : "percyFigma.yml";
+const configFileIndex = process.argv.indexOf('--config');
+const configFileName = configFileIndex !== -1 ? process.argv[configFileIndex + 1] : 'percyFigma.yml';
 
-const configPath = path.resolve(__dirname, configFileName);
+const configPath = path.resolve(__dirname, "..", "..", configFileName);
 
 /** Extracting and storing data from the config file **/
 const configContent = fs.readFileSync(configPath, "utf8");
