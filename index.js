@@ -1,122 +1,135 @@
 #!/usr/bin/env node
-let fs = require("fs");
-let request = require("request");
+const fs = require("fs");
+const request = require("request");
 const path = require("path");
 const yaml = require("js-yaml");
 const { exec } = require("child_process");
 
-/** Fetching the path to config file, default config is "percyFigma.yml" **/
+const handleError = (error) => {
+  console.error("Error:", error);
+};
+
+/** Function to download images from figma **/
+const downloadImage = (imageUrl, imagePath) => {
+  return new Promise((resolve, reject) => {
+    request
+      .get(imageUrl)
+      .on("response", (response) => {
+        if (response.statusCode === 200) {
+          response.pipe(fs.createWriteStream(imagePath));
+          response.on("end", () => {
+            console.log(`Downloaded ${path.basename(imagePath)}`);
+            resolve();
+          });
+        } else {
+          reject(new Error(`Failed to download ${imageUrl}: ${response.statusCode}`));
+        }
+      })
+      .on("error", (err) => {
+        reject(err);
+      });
+  });
+};
+
+/** Getting the config file path, by default it is percyFigma.yml unless provided with the --config flag **/
 const configFileIndex = process.argv.indexOf('--config');
 const configFileName = configFileIndex !== -1 ? process.argv[configFileIndex + 1] : 'percyFigma.yml';
 
 const configPath = path.resolve(__dirname, "..", "..", configFileName);
 
-/** Extracting and storing data from the config file **/
-const configContent = fs.readFileSync(configPath, "utf8");
+try {
+  const configContent = fs.readFileSync(configPath, "utf8");//if this fails, will throw the default error of file not found
+  const config = yaml.load(configContent);
 
-const config = yaml.load(configContent);
+  /** Figma User Token, either from the config or environment variables **/
+  const figmaToken = config.figma_token || process.env.FIGMA_TOKEN;
+  if (!figmaToken) {
+    throw new Error("Figma User token not provided. Please provide your user token in the config file or as an environment variable.");
+  }
 
-/** Figma account API token **/
-const figma_token = config.figma_token ? config.figma_token : process.env.FIGMA_TOKEN;
+  /** Figma Project Token, either from the config or environment variables **/
+  let projectToken = config.project_token || process.env.PROJECT_TOKEN;
+  if (!projectToken) {
+    throw new Error("Figma Project token not provided. Please provide your project token in the config file or as an environment variable.");
+  }
 
-/** Creating the API endpoint URL to fetch data specific to a project **/
-let baseUrl = "https://api.figma.com/v1/images/";
-let project_token = config.project_token ? config.project_token : process.env.PROJECT_TOKEN;
+  /** Base URL of Figma APIs **/
+  const baseUrl = "https://api.figma.com/v1/images/";
 
-/** List of figma image ids **/
-let ids = config.ids;
+  /** Getting image ids from the config file **/
+  const ids = config.ids;
 
-let idString = "";
+  if (!ids || !ids.length) {
+    throw new Error("No image IDs found in the config file.");
+  }
 
-for (let i = 0; i < ids.length; i++) {
-    if (i !== 0) {
-        idString += ",";
-    }
+  const idString = ids.join(",");
 
-    idString += ids[i];
-}
+  const url = `${baseUrl}${projectToken}?ids=${idString}`;
 
-/** API endpoint URL **/
-const url = `${baseUrl + project_token}?ids=${idString}`;
-
-
-/** GET Request options with header having the figma token **/
-const options = {
+  const options = {
     url: url,
     headers: {
-        "X-FIGMA-TOKEN": figma_token,
+      "X-FIGMA-TOKEN": figmaToken,
     },
-};
+  };
 
-/** GET Request to fetch the figma images from the list provided **/
-request.get(options, async (error, response, body) => {
+  /** Get request to download images from figma based on specified user, project and image ids**/
+  request.get(options, async (error, response, body) => {
     if (error) {
-        console.error("Error:", error);
-    } else {
+      handleError(error);
+      return;
+    }
 
-        const responseBody = JSON.parse(body);
+    if (response.statusCode !== 200) {
+      handleError(`Failed to fetch images from Figma API: ${response.statusCode}, please provide correct figma user and project tokens`);
+      return;
+    }
 
-        /** Creating a folder to store the images **/
-        const folderPath = path.join(__dirname, "downloaded_images");
-        if (!fs.existsSync(folderPath)) {
-            fs.mkdirSync(folderPath);
-        }
+    const responseBody = JSON.parse(body);
+    const folderPath = path.join(__dirname, "percy_figma_images");
 
-        // Downloading and storing each image
-        const downloadPromises = [];
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath);
+    }
 
-        Object.entries(responseBody.images).forEach(([imageId, imageUrl]) => {
-            const imageFilename = `${imageId}.png`;
-            const imagePath = path.join(folderPath, imageFilename);
+    const downloadPromises = [];
 
-            /** Promise that will be resolved once all the images are downloaded and stored in a folder **/
-            const downloadPromise = new Promise((resolve, reject) => {
-                request
-                    .get(imageUrl)
-                    .pipe(fs.createWriteStream(imagePath))
-                    .on("close", () => {
-                        console.log(`Downloaded ${imageFilename}`);
-                        resolve();
-                    })
-                    .on("error", (err) => {
-                        console.error(
-                            `Error downloading ${imageFilename}:`,
-                            err
-                        );
-                        reject(err);
-                    })                    ;
-            }).catch((err) => {
-                console.log(err);
-            })
-
-            downloadPromises.push(downloadPromise);
+    /** Downloading images from the urls received in the API response **/
+    for (const [imageId, imageUrl] of Object.entries(responseBody.images)) {
+      const imageFilename = `${imageId}.png`;
+      const imagePath = path.join(folderPath, imageFilename);
+      const downloadPromise = downloadImage(imageUrl, imagePath)
+        .catch((err) => {
+          console.error(`Error downloading ${path.basename(imagePath)}: Please check if the id is correct`);
         });
 
-        /** Executing the percy upload command once the promise is resolved **/
-        Promise.all(downloadPromises)
-            .then(() => {
-                console.log("All images downloaded successfully.");
-
-                /** Percy upload command execution **/
-                const command = "npx percy upload downloaded_images";
-                exec(command, (error, stdout, stderr) => {
-                    if (error) {
-                        console.error(
-                            `Error executing the command: ${error.message}`
-                        );
-                        return;
-                    }
-
-                    console.log(`Command output: ${stdout}`);
-                    console.error(`Command error (if any): ${stderr}`);
-
-                    /** Deleting the folder after command execution **/
-                    fs.rmSync(folderPath, { recursive: true });
-                    console.log(`Deleted folder: ${folderPath}`);
-                });
-            })
-            .catch((err) => {
-                console.error("Error downloading images:", err);
-            });
+      downloadPromises.push(downloadPromise);
     }
-});
+
+    try {
+      await Promise.all(downloadPromises);
+      console.log("All images downloaded successfully.");
+
+      /** Uploading all the downloaded images to Percy with the name being the image file names**/
+      const command = "npx percy upload percy_figma_images";
+      exec(command, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Error executing the command: ${error.message}`);
+          return;
+        }
+
+        console.log(`Command output: ${stdout}`);
+        console.error(`Command error (if any): ${stderr}`);
+
+        /** Deleting the image folder after image upload **/
+        fs.rmSync(folderPath, { recursive: true });
+        console.log(`Deleted folder: ${folderPath}`);
+      });
+    } catch (err) {
+      console.error("Error downloading images:", err);
+    }
+  });
+} catch (error) {
+  handleError(error);
+}

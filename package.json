@@ -1,6 +1,6 @@
 {
   "name": "percy-figma",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "Helps you upload figma images to Percy and get visual comparisons",
   "main": "index.js",
   "bin": {
