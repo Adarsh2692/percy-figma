@@ -29,7 +29,7 @@ set PERCY_TOKEN="your-percy-project-token
 export FIGMA_TOKEN="your-figma-user-token"
 
 #windows
-export FIGMA_TOKEN="your-figma-user-token"
+set FIGMA_TOKEN="your-figma-user-token"
 ```
 Alternatively, you can add the figma_token field inside the config file.
 
@@ -39,7 +39,7 @@ Alternatively, you can add the figma_token field inside the config file.
 export PROJECT_TOKEN="your-figma-project-token"
 
 #windows
-export PROJECT_TOKEN="your-figma-project-token"
+set PROJECT_TOKEN="your-figma-project-token"
 ```
 Alternatively, you can add the project_token field inside the config file
 
