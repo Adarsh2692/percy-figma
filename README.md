@@ -5,6 +5,12 @@ Helps you upload Figma images to Percy and get visual comparisons.
 
 ## Installation
 
+First, make sure you have the Percy CLI installed. If not, install it using npm:
+
+```shell
+npm install -g @percy/cli
+```
+
 Install the package globally using npm:
 
 ```shell
@@ -43,9 +49,10 @@ set PROJECT_TOKEN="your-figma-project-token"
 ```
 Alternatively, you can add the project_token field inside the config file
 
-4. Create a .yml file to be used as the config. Provide a list of Figma UI IDs inside the config file.
+4. Create a .yml file to be used as the config. Provide a list of Figma UI IDs and corresponding snapshot names inside the config file.
 ```yml
 ids: [123-123, 111-111]
+names: ["snapshot 1", "snapshot 2"]
 ```
 
 5. Run the command:
