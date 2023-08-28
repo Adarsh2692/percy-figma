@@ -18,7 +18,8 @@
   "author": "Adarsh",
   "license": "ISC",
   "dependencies": {
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "request": "^2.88.2"
   },
   "repository": {
     "type": "git",
