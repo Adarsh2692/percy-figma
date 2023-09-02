@@ -1,5 +1,0 @@
-version: 2
-upload:
-  files: "**/*.{png,jpg,jpeg}"
-  ignore: ""
-  stripExtensions: true

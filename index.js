@@ -114,7 +114,7 @@ try {
             console.log("All images downloaded successfully.");
 
             /** Uploading all the downloaded images to Percy with the name being the image file names**/
-            const command = `npx percy upload ${folderPath}`;
+            const command = `npx percy upload --strip-extensions ${folderPath}`;
             exec(command, (error, stdout, stderr) => {
                 if (error) {
                     console.error(
