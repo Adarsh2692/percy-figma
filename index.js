@@ -22,6 +22,13 @@ try {
     const configContent = fs.readFileSync(configPath, "utf8"); //if this fails, will throw the default error of file not found
     const config = yaml.load(configContent);
 
+    /** Checking for percy token in the config file **/
+    const percyToken = config.percy_token;
+
+    if (percyToken) {
+        process.env.PERCY_TOKEN = percyToken;
+    }
+
     /** Figma User Token, either from the config or environment variables **/
     const figmaToken = config.figma_token || process.env.FIGMA_TOKEN;
     if (!figmaToken) {
@@ -30,11 +37,11 @@ try {
         );
     }
 
-    /** Figma Project Token, either from the config or environment variables **/
-    let projectToken = config.project_token || process.env.PROJECT_TOKEN;
-    if (!projectToken) {
+    /** Figma File Token, either from the config or environment variables **/
+    let figmaFileToken = config.figma_file_token || process.env.FIGMA_FILE_TOKEN;
+    if (!figmaFileToken) {
         throw new Error(
-            "Figma Project token not provided. Please provide your project token in the config file or as an environment variable."
+            "Figma File token not provided. Please provide your file token in the config file or as an environment variable."
         );
     }
 
@@ -58,7 +65,7 @@ try {
 
     const idString = ids.join(",");
 
-    const url = `${baseUrl}${projectToken}?ids=${idString}`;
+    const url = `${baseUrl}${figmaFileToken}?ids=${idString}`;
 
     const options = {
         url: url,
@@ -67,7 +74,7 @@ try {
         },
     };
 
-    /** Get request to download images from figma based on specified user, project and image ids**/
+    /** Get request to download images from figma based on specified user, file and image ids**/
     request.get(options, async (error, response, body) => {
         if (error) {
             handleError(error);
@@ -76,7 +83,7 @@ try {
 
         if (response.statusCode !== 200) {
             handleError(
-                `Failed to fetch images from Figma API: ${response.statusCode}, please provide correct figma user and project tokens`
+                `Failed to fetch images from Figma API: ${response.statusCode}, please provide correct figma user and file tokens`
             );
             return;
         }
